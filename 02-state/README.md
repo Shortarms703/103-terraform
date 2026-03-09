@@ -10,7 +10,8 @@ terraform destroy
 
 
 ## Read
-Data is for searching your cloud environment for existing items. where as, Resources is for creating new items in your cloud environment.
+Data is for searching your cloud environment for existing items. Where as Resources is for creating new items in your cloud environment.
+
 *main.tf*
 ```
 data "aws_ami" "ubuntu" {
@@ -45,7 +46,7 @@ resource "aws_instance" "vm" {
 
 ## Making Changes
 
-When making changes, you will edit the configuration files directly and save it. Once done, you can run the `terraform apply`. Based on the changes of the cloud or on-prem env, some changes can only be done by removing and recreating the object, this would lose any data stored in the objects.
+When making changes, you will edit the configuration files directly and save it. Once done, you can run `terraform apply`. Based on the changes of the cloud or on-prem env, some changes can only be done by removing and recreating the object, this would lose any data stored in the objects.
 
 Simple change
 
@@ -122,7 +123,7 @@ terraform workspace list
 terraform workspace create
 ```
 
-Change workspace and create apply the same terraform again
+Change workspace and apply the same terraform again
 
 ```bash
 terraform workspace select 
