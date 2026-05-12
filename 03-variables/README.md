@@ -1,14 +1,12 @@
 # Terraform Variables
 
-Until now everything has been defined as we used it. But Terraform offers the use of variables so things can either be set once and used often or change from environment to environment.
+Until now everything has been defined as we used it. However, Terraform offers the use of variables, allowing values to be set once and reused often, or change from environment to environment.
 
-## First varialbe
+## First variable
 
-
-One thing that would need to be set once and used often is the IP address to allow for our security group. As we open more and more services we'll always want it to be accessible from here only.
+One thing that would need to be set once and used often is the IP address to allow for our security group. As we open more and more services we'll always want it to be accessible from only your computer.
 
 ```
-
 variable "lab_ip" {
   type = string
   default = "173.177.234.212/32"
@@ -17,7 +15,6 @@ variable "lab_ip" {
 .
 .
 .
-
 
 #sec group
 resource "aws_security_group" "sg" {
@@ -42,7 +39,7 @@ terraform apply
 
 ## Prompt for value
 
-When a default value isn't given Terraform will ask for a value. We'll create a variable asking for which user number you are.
+When a default value isn't given, Terraform will ask for a value. We'll create a variable that will prompt for which user number you are.
 
 ```
 variable "user" {
@@ -50,16 +47,16 @@ variable "user" {
 }
 ```
 
-
 ```bash
 terraform apply
 ```
 
-## Concatination
+## Concatenation
 
-Modify your main.tf to use the new variable instead of being hardcoded
+Modify your `main.tf` to use the new variable instead of being hardcoded. 
 
-*main.tf*
+`main.tf`
+
 ```
 resource "aws_vpc" "vpc" {
   cidr_block = "10.${var.user}.0.0/16"
@@ -87,13 +84,16 @@ resource "aws_security_group" "sg" {
 .
 .
 .
+
 resource "aws_key_pair" "key" {
   key_name   = "user${var.user}"
   ...
 }
+
 .
 .
 .
+
 resource "aws_instance" "vm" {
   ...
   tags = {
@@ -104,11 +104,12 @@ resource "aws_instance" "vm" {
 
 ## Count
 
-If you would want more then 1 VM created in AWS you would create an Auto-Scalling group, but that's not always available for onprem. In either case you can use Terraform to create multiple instances of the same VM. To do this you use the `count` attribute. It's not available on all resources but most support it.
+If you would want more then 1 VM created in AWS you would create an Auto-Scaling group, but that's not always available with on-prem environments. In either case, you can use Terraform to create multiple instances of the same VM. To do this, use the `count` attribute. It's not available on all resources, but most do support it.
 
-Start by creating a variable asking for the ammount of VMs to create.
+Start by creating a variable which asks for the number of VMs to create.
 
-*main.tf*
+`main.tf`
+
 ```
 variable "num_vms" {
   type = number
@@ -116,9 +117,10 @@ variable "num_vms" {
 }
 ```
 
-Then add the `count` to the aws_instance.
+Then add the `count` variable to the aws_instance.
 
-*main.tf*
+`main.tf`
+
 ```
 resource "aws_instance" "vm" {
   count                       = "${var.num_vms}" 
@@ -141,9 +143,10 @@ terraform apply
 
 ## Variable file
 
-To keep everything organised the standard is to create a `variables.tf` file and declare all your variables there.
+To keep everything organized, the standard is to create a `variables.tf` file and declare all your variables there.
 
-*variables.tf*
+`variables.tf`
+
 ```
 variable "num_vms" {
   type = number
@@ -160,24 +163,27 @@ variable "lab_ip" {
 }
 ```
 
-Next to stop the prompting we can create `.tfvars` file with values for our specific environment.
+Next, to stop the prompting we can create `.tfvars` file with values for our specific environment.
 
+`workshop.tfvars`
 
-*workshop.tfvars*
 ```
 num_vms = 2
 user = N
 ```
-Then when running the apply you can give it the file
+
+Then, when running the apply, you can give pass the file as an argument. 
 
 ```bash
-tarraform apply --var-file workshop.tfvars
+terraform apply --var-file workshop.tfvars
 ```
-### Save to git
+
+## Save to git
+
 Time to save our progress!
+
 ```bash
 git add .
-git commit -m "variables"
+git commit -m "Terraform variables"
 git push
-
 ```

@@ -2,9 +2,10 @@
 
 Modules make it easier to deploy complex resources. Resources that traverse multiple APIs.
 
+For example, take the network we created in the example below. We created a VPC, then a subnet and an Internet Gateway with a default route for that gateway. 
 
-For example, the network we created in this example. We created a VPC, then a subnet and an Internet Gateway with a default route for that gateway
-*main.tf*
+`main.tf`
+
 ```
 # VPC
 resource "aws_vpc" "vpc" {
@@ -37,7 +38,8 @@ resource "aws_route" "route" {
 
 With a module, all of that can be created at once
 
-*main.tf*
+`main.tf`
+
 ```
 module "vpc" {
   source = "terraform-aws-modules/vpc/aws"
@@ -58,11 +60,12 @@ module "vpc" {
 }
 ```
 
-### Save to git
+## Save to git
+
 Time to save our progress!
+
 ```bash
 git add .
 git commit -m "Module"
 git push
-
 ```

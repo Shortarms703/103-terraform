@@ -1,6 +1,5 @@
 # Terraform AWS
 
-
 Before we can start with Terraform on AWS we'll need to login with the AWS cli. Terraform will use the local cli credentials to run commands
 
 1. Login to AWS console
@@ -15,38 +14,48 @@ Before we can start with Terraform on AWS we'll need to login with the AWS cli. 
 2. In the top right corner, click on your username and go to `Security credentials`
 
 3. Under `Access Keys` click `Create access key`
-a. `Command Line Interface (CLI)
-b. Accept the risks, next
-c. Take note of the `Access Key` and `Secret Access Key`
 
-4. On your workstation the following
-```bash
-aws configure
-```
-```
-AWS Access Key ID [****************5TF7]:
-AWS Secret Access Key [****************lJti]:
-Default region name [ca-central-1]:
-Default output format [None]:
-```
-5. You can run the following to test your credentials. You should see your ARN
-```bash
-aws sts get-caller-identity
-```
+    a. Command Line Interface (CLI)
+
+    b. Accept the risks, next
+    
+    c. Take note of the `Access Key` and `Secret Access Key`
+
+4. On your workstation, run the following
+
+    ```bash
+    aws configure
+    ```
+
+    ```text
+    AWS Access Key ID [****************5TF7]:
+    AWS Secret Access Key [****************lJti]:
+    Default region name [ca-central-1]:
+    Default output format [None]:
+    ```
+
+5. You can run the following to test your credentials. You should see your ARN in the output. 
+
+    ```bash
+    aws sts get-caller-identity
+    ```
 
 ## First Deployment
 
-Create a new file called `main.tf`, this will be the primary configuration file of the our deployment. These files are written using the HashiCorp Configuration Language or using Json. These files are used to define your infrastructure as code (IaC)
+Create a new file called `main.tf`. 
+
+This will be the primary configuration file of the deployment. These files are written using either the HashiCorp Configuration Language or Json. These files are used to define your infrastructure as code (IaC). 
 
 ### Prerequisites
-In that file, start by declaring the versions we want to use.
+
+In the `main.tf` file, start by declaring the versions we want to use.
 
 ```
 terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.99"
+      version = "~> 6.44.0"
     }
   }
 
@@ -54,14 +63,15 @@ terraform {
 }
 ```
 
-This will do a few things. It will tell terraform we want to use the `hashicorp/aws` plugin and the latest of the 5.99 (which is the most current at the time of creating this).
+This will do a few things. It will tell terraform we want to use the `hashicorp/aws` plugin and version 6.44.0 (which is the most current at the time of creating this).
 
-These scripts have also been tested on terraform cli version 1.12 and it will set that as a minimum version.
+These scripts have also been tested on terraform cli version 1.12 and it will be set as a minimum version.
 
 
-Next we will provide some minimum data to the aws plugin. This information can be found in the plugin's [documentation|https://registry.terraform.io/providers/hashicorp/aws/5.99.1/docs]
+Next we will provide some minimum data to the aws plugin. This information can be found in the plugin's [documentation](https://registry.terraform.io/providers/hashicorp/aws/5.99.1/docs). 
 
-*main.tf*
+`main.tf`
+
 ```
 provider "aws" {
   region = "ca-central-1"
@@ -70,9 +80,10 @@ provider "aws" {
 
 ### Networking
 
-For the first example. We'll deploy a public network, with a internet gateway and a VM that will be remotely accesible
+For the first example, we'll deploy a public network, with a internet gateway and a VM that will be remotely accessible. 
 
-*main.tf*
+`main.tf`
+
 ```
 # VPC
 resource "aws_vpc" "vpc" {
@@ -91,24 +102,27 @@ resource "aws_subnet" "public" {
     Name = "userN"
   }
 }
-
 ```
+
+Change `userN` to your user number. 
 
 ## Deploying
 
-Before we can deploy anthing we need to initailize Terraform. 
+Before we can deploy anything we need to initialize Terraform. 
+
 ```bash
 terraform init
 ```
-Terraform will look for any `.tf` files in the current folder and read the `required_providers` and download any that are missing. In this case, you should see it fetch the latest aws plugin.
 
-Once initialized we can `plan` the deployment. Terraform will again read the tf files and give a report on what it will be doing to get to the desired state.
+Terraform will look for any `.tf` files in the current folder and read the `required_providers`, then download any that are missing. In this case, you should see it fetch the latest aws plugin.
+
+Once initialized, we can `plan` the deployment. Terraform will again read the `.tf` files and give a report on what it will be doing to get to the desired state.
 
 ```bash
 terraform plan
 ```
 
-You'll notice every line starts with a `+` this is because currently nothing exist so everything will be created. Which is exactly what we want so we are good to go ahead a apply this terraform file
+You'll notice every line starts with a `+`. This is because nothing currently exists, so everything is being created. This is exactly what we want, so we are good to go ahead a apply this terraform file. 
 
 ```bash
 terraform apply
@@ -118,19 +132,20 @@ Terraform will show you the same plan again, there is a way to save a plan and j
 
 Once done, it'll prompt you to continue. Type `yes` exactly. `y` or anything else will not work.
 
-Once completed you can go back to the AWS console and find your new VPC and subnet.
+Once completed, you can go back to the AWS console and find your new VPC and subnet.
 
+### Internet Accessible
 
-### Internet Accesible
+To be able to reach the VMs from your workstation we'll need to make them publicly accessible. First we'll create an internet gateway. You can think of this as a endpoint on the public router. Next, we'll create a default route for the subnet that sends any unknown destination to that new IG (Internet Gateway). Last is the Security Group. For this, you'll need to know your public IP. If you need to find it, you can run the below command from your computer (not the workstation), or search "what's my ip" and your search engine should tell you.
 
-To be able to reach the VMs from here we'll need to make them publicly accessible. First thing we create is an internet gateway. You can think of this as a endpoint on the public router. Next is a default route for the subnet that sends any unknown destination to that new IG. Lastly is the Security Group. For this you'll need to know your public IP, if you need to find it out you can run the below command from your computer not the workstation, or search "what's my ip" and your search engine should tell you.
+To get current IP:
 
-Current IP:
 ```bash
 curl ifconfig.me
 ```
 
-*main.tf*
+`main.tf`
+
 ```
 # Internet Gateway
 resource "aws_internet_gateway" "ig" {
@@ -165,7 +180,7 @@ resource "aws_security_group" "sg" {
 }
 ```
 
-After adding the above we can apply the new changes
+After adding the above we can apply the new changes. 
 
 ```bash
 terraform apply
@@ -173,8 +188,8 @@ terraform apply
 
 ### VM
 
+`main.tf`
 
-*main.tf*
 ```
 resource "aws_key_pair" "key" {
   key_name   = "userN"
@@ -195,11 +210,13 @@ resource "aws_instance" "vm" {
 }
 ```
 
-### Save to git
+## Save to git
+
 Time to save our progress!
+
 ```bash
 git add .
-git commit -m "Inventory management"
+git commit -m "Terraform introduction"
 git push
 
 ```
