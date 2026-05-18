@@ -3,17 +3,16 @@
 Before we can start with Terraform on AWS we'll need to login with the AWS cli. Terraform will use the local cli credentials to run commands
 
 1. Login to AWS console
-  https://console.aws.amazon.com/console/home#
+  <https://console.aws.amazon.com/console/home#>
 
   | Account ID | 257034520079 |
   | ---------- | ------------ |
   | Username   | userN        |
   | Password   |              |
 
+1. In the top right corner, click on your username and go to `Security credentials`
 
-2. In the top right corner, click on your username and go to `Security credentials`
-
-3. Under `Access Keys` click `Create access key`
+2. Under `Access Keys` click `Create access key`
 
     a. Command Line Interface (CLI)
 
@@ -21,7 +20,7 @@ Before we can start with Terraform on AWS we'll need to login with the AWS cli. 
     
     c. Take note of the `Access Key` and `Secret Access Key`
 
-4. On your workstation, run the following
+3. On your workstation, run the following
 
     ```bash
     aws configure
@@ -34,7 +33,9 @@ Before we can start with Terraform on AWS we'll need to login with the AWS cli. 
     Default output format [None]:
     ```
 
-5. You can run the following to test your credentials. You should see your ARN in the output. 
+    Enter your Access Key Id and Secret Access Key, and specify `ca-central-1` as the default region. Press Enter to skip the output format.
+
+4. You can run the following to test your credentials. You should see your ARN in the output. 
 
     ```bash
     aws sts get-caller-identity
@@ -66,7 +67,6 @@ terraform {
 This will do a few things. It will tell terraform we want to use the `hashicorp/aws` plugin and version 6.44.0 (which is the most current at the time of creating this).
 
 These scripts have also been tested on terraform cli version 1.12 and it will be set as a minimum version.
-
 
 Next we will provide some minimum data to the aws plugin. This information can be found in the plugin's [documentation](https://registry.terraform.io/providers/hashicorp/aws/5.99.1/docs). 
 
@@ -105,6 +105,8 @@ resource "aws_subnet" "public" {
 ```
 
 Change `userN` to your user number. 
+
+Change the `.N.` in the `cidr_blocks` to your user number as well. 
 
 ## Deploying
 
@@ -153,7 +155,7 @@ resource "aws_internet_gateway" "ig" {
 }
 # Internet Route
 resource "aws_route" "route" {
-  route_table_id = aws_vpc.userN.default_route_table_id
+  route_table_id = aws_vpc.vpc.default_route_table_id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id = aws_internet_gateway.ig.id
 }
@@ -186,11 +188,17 @@ After adding the above we can apply the new changes.
 terraform apply
 ```
 
-### VM
+You should see Terraform prompt you to create 3 new resources (the Internet Gateway, the Route, and the Security Group). Type `yes` to confirm. 
 
-`main.tf`
+Now that our network is fully configured and accessible from your IP address, the final step is to deploy a Virtual Machine (EC2 instance) inside of it.
 
-```
+### Virtual Machine
+
+To securely connect to the VM once it's created, we need to provide AWS with our public SSH key. We will create an `aws_key_pair` resource, and then assign that key pair to our new `aws_instance`.
+
+In `main.tf`, add the following blocks. Make sure to replace `userN` with your assigned user number, and paste your actual public SSH key (from `~/.ssh/id_ed25519.pub`) into the `public_key` field.
+
+```hcl
 resource "aws_key_pair" "key" {
   key_name   = "userN"
   public_key = "ssh-rsa AAAAB... email@example.com"
@@ -209,6 +217,37 @@ resource "aws_instance" "vm" {
   }
 }
 ```
+
+#### Outputting the IP Address
+
+Once the VM is created, we will need to know its public IP address so we can connect to it. Instead of logging into the AWS Console to find it, we can tell Terraform to output the IP address directly to our terminal.
+
+Add this output block to the end of your `main.tf`:
+
+```hcl
+output "vm_public_ip" {
+  description = "The public IP address of the VM"
+  value       = aws_instance.vm.public_ip
+}
+```
+
+Apply these final changes:
+
+```bash
+terraform apply
+```
+
+Terraform will create the key pair and the EC2 instance. After it finishes, it will print an `Outputs:` section showing the `vm_public_ip`.
+
+#### SSH Access
+
+Now that the VM is running, you can connect to it! Use the IP address provided in the Terraform output, and the default `ubuntu` username for this specific AMI. 
+
+```bash
+ssh ubuntu@<vm_public_ip>
+```
+
+Since your Security Group allows port 22 from your current IP address, and your SSH key is authorized on the machine, you should be logged right in. 
 
 ## Save to git
 

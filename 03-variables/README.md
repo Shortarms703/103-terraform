@@ -137,6 +137,21 @@ resource "aws_instance" "vm" {
 }
 ```
 
+Because our `aws_instance` now uses `count`, it is no longer a single resource but a list of resources. This means our previous `output` block will fail, since it was only designed to output a single ip address. We need to use the **splat (`[*]`)** operator to tell Terraform to output a list of all the IPs instead.
+
+Update your output block:
+
+`main.tf`
+
+```hcl
+output "vm_public_ip" {
+  description = "The public IP addresses of the VMs"
+  value       = aws_instance.vm[*].public_ip
+}
+```
+
+Now you can apply your changes:
+
 ```bash
 terraform apply
 ```
@@ -163,7 +178,7 @@ variable "lab_ip" {
 }
 ```
 
-Next, to stop the prompting we can create `.tfvars` file with values for our specific environment.
+Next, to stop the prompting we can create a `.tfvars` file with values for our specific environment.
 
 `workshop.tfvars`
 

@@ -1,6 +1,8 @@
 # Terraform State
 
-Terraform state files are a snapshot of everything deployed by terraform. They are the last known checkpoints and configurations. They must be protected, since many of them contain sensitive info. If you lose the state file, you cannot edit your environment using terraform, since it cannot translate the variable name object to the running instance.
+Terraform state files (`terraform.tfstate`) act as a database that maps your real-world cloud resources to your configuration files. They are the last known checkpoints of your environment. 
+
+This state file is Terraform's "source of truth". It must be protected, since it contains sensitive information, and if you lose the state file, Terraform will lose track of your environment and won't know which resources it is currently managing. 
 
 ## Deleting Resources
 
@@ -10,11 +12,14 @@ This will delete everything that is created previously. Any of our values in the
 terraform destroy
 ```
 
-## Read
+## Data Sources
 
-`data` blocks are for searching your cloud environment for existing items. 
+In Terraform, there are two primary types of blocks for interacting with the cloud:
 
-`resource` blocks are for creating new items in your cloud environment.
+- **`resource` blocks:** For creating and managing *new* items in your cloud environment.
+- **`data` blocks:** For searching your cloud environment to read information about *existing* items.
+
+For example, instead of hardcoding an AMI ID (which changes frequently), we can use a `data` block to dynamically search AWS for the most recent Ubuntu AMI.
 
 `main.tf`
 
@@ -51,9 +56,11 @@ resource "aws_instance" "vm" {
 
 ## Making Changes
 
-When making changes, you will edit the configuration files directly and save it. Once done, you can run `terraform apply`. Some changes can only be done by removing and recreating the object, which would cause you to lose the data stored in those objects. 
+When you need to modify your infrastructure, you edit the configuration files and run `terraform apply`. Terraform compares your desired configuration against the current state file, and determines what needs to change.
 
-Make the following simple change. 
+Some changes (like changing a tag or a security group rule) can be done on the fly without deleting the resource. This is called an **in-place update**.
+
+Make the following simple change to your instance's name tag:
 
 `main.tf`
 
@@ -74,13 +81,17 @@ resource "aws_instance" "vm" {
 
 `~ update in-place`
 
-Go to the AWS UI, and change the name of the VM back to it's original name `userN`. Then run `terraform apply` again.
+Go to the AWS Web Console, find your VM, and manually change the name tag back to its original name (`userN`). Then, return to your terminal and run `terraform apply` again.
 
 ```bash
 terraform apply
 ```
 
-Terraform will update its state, notice the change, and make it match the required name. 
+This demonstrates **Configuration Drift**. Terraform checks the real AWS environment, notices that someone manually changed the name (which causes the real world to "drift" from your configuration file), and will automatically update the resource to make it match your file again!
+
+### Destructive Changes
+
+Some changes cannot be applied on the fly. For example, if we change the AMI to upgrade the operating system from Ubuntu 22.04 to 24.04, Terraform must completely destroy the old VM and build a brand new one.
 
 `main.tf`
 
@@ -102,8 +113,7 @@ data "aws_ami" "ubuntu" {
 }
 ```
 
-Notice `-/+ destroy and then create replacement`, meaning the OS disk used isn't something we can change on the fly. Terraform will continue to make sure that what we have in the file matches what's in the environment, and will delete and recreate the VM to have it use the correct OS disk. Be careful when using state files to maintain changes, since without backups everything on that VM will be gone. 
-
+Notice the `-/+ destroy and then create replacement` output. This means the underlying attribute (the OS disk) cannot be changed on a running machine. 
 
 ## Output
 
@@ -124,16 +134,31 @@ terraform apply
 
 It's possible you'll want to apply the same terraform file more then once (dev, prod). If you try to do that normally you will encounter issues with the state file, changing the values isn't enough. When doing, the better method is to `workspaces`. 
 
+Lets create a second workspace for testing and applying the same terraform file again. 
+
 ```bash
 terraform workspace list
 
-terraform workspace create
+terraform workspace new dev
 ```
 
-Change workspace and apply the same terraform again
+To check your current workspace, run the following. 
 
 ```bash
-terraform workspace select 
+terraform workspace list
+# or
+terraform workspace show
+```
+
+Make sure your current workspace is `dev`, if not, select it with the command below.
+
+```bash
+terraform workspace select dev
+```
+
+Now that we're in the `dev` workspace, apply the same terraform again. 
+
+```bash
 terraform apply
 ```
 
